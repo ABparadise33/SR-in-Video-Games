@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -40,8 +41,9 @@ def main() -> None:
         print(f"Using existing HAT repository: {hat_root}")
 
     if args.install:
-        run(["pip", "install", "-r", "requirements.txt"], cwd=hat_root)
-        run(["python", "setup.py", "develop"], cwd=hat_root)
+        run([sys.executable, "-m", "pip", "install", "einops"], cwd=hat_root)
+        run([sys.executable, "-m", "pip", "install", "--no-build-isolation", "basicsr==1.3.4.9"], cwd=hat_root)
+        run([sys.executable, "setup.py", "develop"], cwd=hat_root)
 
     if args.fix_basicsr_torchvision:
         spec = importlib.util.find_spec("basicsr")
