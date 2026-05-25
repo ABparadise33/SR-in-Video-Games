@@ -1,0 +1,36 @@
+# Human-readable baseline recipe.
+# Use scripts/write_hat_config.py to generate the actual HAT training YAML.
+
+competition: super-resolution-in-video-games
+scale: 4
+model: HAT-S
+source_notebook: 3rd_code.ipynb
+
+data:
+  train_lq: train/lr
+  train_gt: train/hr
+  test_lq: test/lr
+  lr_train_size: [270, 480]
+  hr_train_size: [1080, 1920]
+  lr_test_crop_size: [64, 64]
+  hr_test_crop_size: [256, 256]
+
+cleaning:
+  method: resize LR and HR to a common check size, then compute RGB PSNR
+  check_size: [256, 256]
+  keep_if_psnr_at_least: 18.0
+
+training:
+  gt_size: 256
+  batch_size_per_gpu: 4
+  num_worker_per_gpu: 2
+  total_iter: 24000
+  use_hflip: true
+  use_rot: true
+  loss: L1
+  validation: disabled_for_baseline_reproduction
+
+inference:
+  output_size: [256, 256]
+  submission_encoding: flatten_uint8_then_rle_zlib_base64
+

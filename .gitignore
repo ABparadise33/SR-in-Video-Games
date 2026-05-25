@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Large/generated artifacts
+data/
+external/
+experiments/
+results/
+submissions/
+meta_info/*.csv
+meta_info/*.json
+*.pth
+*.pt
+*.ckpt
+

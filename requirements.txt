@@ -1,0 +1,12 @@
+kagglehub
+numpy
+opencv-python
+pandas
+Pillow
+PyYAML
+tqdm
+torch
+torchvision
+torchmetrics
+imagehash
+
