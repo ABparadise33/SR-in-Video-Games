@@ -189,6 +189,15 @@ python scripts/plot_training_curves.py \
   --output logs/train_HAT-S_gamesr_baseline_curves.png
 ```
 
+For a training run that already finished with a plain terminal log, parse it once:
+
+```bash
+python scripts/parse_hat_log_to_csv.py \
+  --log train_hat_s_baseline.log \
+  --train-csv logs/train_HAT-S_gamesr_baseline_train_metrics.csv \
+  --val-csv logs/train_HAT-S_gamesr_baseline_val_metrics.csv
+```
+
 ## 5. Create a Kaggle Submission
 
 ```bash
