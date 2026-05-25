@@ -36,17 +36,47 @@ python scripts/build_clean_meta.py \
   --rejects meta_info/rejected_psnr18.csv \
   --summary meta_info/clean_psnr18_summary.json
 
+python scripts/split_meta_info.py \
+  --input meta_info/train_clean_psnr18.txt \
+  --train-output meta_info/train_clean_psnr18_train.txt \
+  --val-output meta_info/train_clean_psnr18_val.txt \
+  --val-ratio 0.05 \
+  --max-val 200
+
+python scripts/make_val_crops.py \
+  --data-root data/super-resolution-in-video-games \
+  --meta-info meta_info/train_clean_psnr18_val.txt \
+  --output-root data/val_crops
+
 python scripts/write_hat_config.py \
   --hat-root external/HAT \
   --data-root data/super-resolution-in-video-games \
   --pretrain /path/to/HAT-S_SRx4.pth \
-  --meta-info meta_info/train_clean_psnr18.txt \
+  --meta-info meta_info/train_clean_psnr18_train.txt \
+  --val-root data/val_crops \
+  --val-freq 2000 \
   --total-iter 24000 \
   --output external/HAT/options/train/train_HAT-S_gamesr_baseline.yml
 
 cd external/HAT
 python hat/train.py -opt options/train/train_HAT-S_gamesr_baseline.yml
 ```
+
+## Expected Logs
+
+During training, the terminal log should periodically show iteration metadata, learning rate, timing, and the active loss components. For the baseline HAT-S config this is mainly:
+
+- `l_pix`: pixel L1 loss
+- `lrs`: current learning rate
+- `time` and `data_time`
+
+With the validation crop set enabled, every `val_freq` iterations it should also report:
+
+- validation `psnr`
+- validation `ssim`
+- best-so-far metric and the iteration where it happened
+
+TensorBoard logs are written by HAT under `external/HAT/tb_logger/<experiment_name>/`.
 
 ## Improvement Plan After Baseline
 
@@ -66,4 +96,3 @@ python hat/train.py -opt options/train/train_HAT-S_gamesr_baseline.yml
 - Ablation table.
 - Visual comparisons on representative crops.
 - Team contribution table required by the course PDF.
-

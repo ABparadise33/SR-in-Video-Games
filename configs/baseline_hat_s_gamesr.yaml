@@ -28,9 +28,11 @@ training:
   use_hflip: true
   use_rot: true
   loss: L1
-  validation: disabled_for_baseline_reproduction
+  validation: fixed 64x64 LR to 256x256 HR crops
+  val_freq: 2000
+  logged_losses:
+    - l_pix
 
 inference:
   output_size: [256, 256]
   submission_encoding: flatten_uint8_then_rle_zlib_base64
-

@@ -84,6 +84,23 @@ The output `txt` file is a BasicSR/HAT-compatible `meta_info_file`.
 
 ## 4. Write HAT Baseline Config
 
+For experiment tracking, create a small fixed validation set from the clean pairs first:
+
+```bash
+python scripts/split_meta_info.py \
+  --input meta_info/train_clean_psnr18.txt \
+  --train-output meta_info/train_clean_psnr18_train.txt \
+  --val-output meta_info/train_clean_psnr18_val.txt \
+  --val-ratio 0.05 \
+  --max-val 200
+
+python scripts/make_val_crops.py \
+  --data-root data/super-resolution-in-video-games \
+  --meta-info meta_info/train_clean_psnr18_val.txt \
+  --output-root data/val_crops \
+  --crops-per-image 1
+```
+
 Download or provide a HAT-S SRx4 pretrained checkpoint, then generate a HAT training config:
 
 ```bash
@@ -91,7 +108,9 @@ python scripts/write_hat_config.py \
   --hat-root external/HAT \
   --data-root data/super-resolution-in-video-games \
   --pretrain /path/to/HAT-S_SRx4.pth \
-  --meta-info meta_info/train_clean_psnr18.txt \
+  --meta-info meta_info/train_clean_psnr18_train.txt \
+  --val-root data/val_crops \
+  --val-freq 2000 \
   --total-iter 24000 \
   --output external/HAT/options/train/train_HAT-S_gamesr_baseline.yml
 ```
@@ -103,7 +122,23 @@ cd external/HAT
 python hat/train.py -opt options/train/train_HAT-S_gamesr_baseline.yml
 ```
 
-This mirrors the notebook baseline: HAT-S x4, `gt_size=256`, batch size 4, hflip/rotation, no validation set by default.
+This mirrors the notebook baseline: HAT-S x4, `gt_size=256`, batch size 4, hflip/rotation, plus an optional fixed validation crop set for experiment tracking.
+
+With `--val-root`, HAT logs validation PSNR/SSIM every `--val-freq` iterations. The default validation metric uses RGB PSNR/SSIM with `crop_border=0`, which is closer to the Kaggle setup than the standard benchmark Y-channel PSNR.
+
+## Training Logs
+
+The HAT/BasicSR terminal log periodically includes:
+
+- `epoch`, `iter`
+- learning rate, shown as `lrs`
+- iteration time and data loading time
+- loss components from the model, for this baseline mainly `l_pix`
+- validation metrics every `val_freq`, including `psnr`, `ssim`, and best-so-far values
+
+For this L1-only HAT-S baseline, the key loss is `l_pix`. If later we add perceptual/GAN losses, BasicSR-style logs will also include components such as `l_g_percep`, `l_g_style`, `l_g_gan`, `l_d_real`, and `l_d_fake`.
+
+Logs and TensorBoard files are written under `external/HAT/experiments/<experiment_name>/` and `external/HAT/tb_logger/<experiment_name>/`.
 
 ## 5. Create a Kaggle Submission
 
@@ -136,7 +171,7 @@ Use this as the initial score anchor:
 - Crop: paired random crop with `gt_size=256`
 - Augmentation: horizontal flip and rotation
 - Cleaning: remove or skip LR/HR pairs with pair PSNR `< 18`
-- Loss: L1 loss from the official HAT config
-- Metric: Kaggle PSNR
+- Loss: L1 loss from the official HAT config, logged as `l_pix`
+- Metric: Kaggle PSNR; local validation uses fixed `64x64 -> 256x256` RGB crops
 
 Recommended next experiments are listed in [docs/baseline_notes.md](docs/baseline_notes.md).
