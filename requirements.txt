@@ -7,3 +7,4 @@ PyYAML
 tqdm
 torchmetrics
 imagehash
+matplotlib

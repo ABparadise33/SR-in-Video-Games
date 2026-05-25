@@ -144,6 +144,16 @@ cd external/HAT
 python hat/train.py -opt options/train/train_HAT-S_gamesr_baseline.yml
 ```
 
+For experiment logs that are easy to plot, prefer the wrapper from the repository root:
+
+```bash
+python scripts/train_hat_with_csv.py \
+  --hat-root external/HAT \
+  --opt options/train/train_HAT-S_gamesr_baseline.yml \
+  --log-dir logs \
+  --log-name train_HAT-S_gamesr_baseline
+```
+
 This mirrors the notebook baseline: HAT-S x4, `gt_size=256`, batch size 4, hflip/rotation, plus an optional fixed validation crop set for experiment tracking.
 
 With `--val-root`, HAT logs validation PSNR/SSIM every `--val-freq` iterations. The default validation metric uses RGB PSNR/SSIM with `crop_border=0`, which is closer to the Kaggle setup than the standard benchmark Y-channel PSNR.
@@ -161,6 +171,23 @@ The HAT/BasicSR terminal log periodically includes:
 For this L1-only HAT-S baseline, the key loss is `l_pix`. If later we add perceptual/GAN losses, BasicSR-style logs will also include components such as `l_g_percep`, `l_g_style`, `l_g_gan`, `l_d_real`, and `l_d_fake`.
 
 Logs and TensorBoard files are written under `external/HAT/experiments/<experiment_name>/` and `external/HAT/tb_logger/<experiment_name>/`.
+
+The wrapper also writes:
+
+```text
+logs/train_HAT-S_gamesr_baseline.log
+logs/train_HAT-S_gamesr_baseline_train_metrics.csv
+logs/train_HAT-S_gamesr_baseline_val_metrics.csv
+```
+
+Plot curves after training:
+
+```bash
+python scripts/plot_training_curves.py \
+  --train-csv logs/train_HAT-S_gamesr_baseline_train_metrics.csv \
+  --val-csv logs/train_HAT-S_gamesr_baseline_val_metrics.csv \
+  --output logs/train_HAT-S_gamesr_baseline_curves.png
+```
 
 ## 5. Create a Kaggle Submission
 
