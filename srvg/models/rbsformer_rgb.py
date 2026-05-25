@@ -112,11 +112,13 @@ class RBSFormerRGB(nn.Module):
         num_heads: int = 6,
         ffn_expansion: float = 2.0,
         scale: int = 4,
+        residual_upsample: bool = True,
     ) -> None:
         super().__init__()
         if scale not in {2, 3, 4}:
             raise ValueError("RBSFormerRGB currently supports scale 2, 3, or 4.")
         self.scale = scale
+        self.residual_upsample = residual_upsample
         self.conv_first = nn.Conv2d(in_channels, channels, 3, 1, 1)
         self.body = nn.Sequential(
             *[TransformerBlock(channels, num_heads, ffn_expansion) for _ in range(num_blocks)]
@@ -130,5 +132,8 @@ class RBSFormerRGB(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shallow = self.conv_first(x)
         deep = self.conv_body(self.body(shallow))
-        return self.upsample(shallow + deep)
-
+        out = self.upsample(shallow + deep)
+        if self.residual_upsample:
+            base = F.interpolate(x, scale_factor=self.scale, mode="bicubic", align_corners=False)
+            out = out + base
+        return out

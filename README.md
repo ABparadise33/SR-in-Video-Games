@@ -246,6 +246,8 @@ Recommended next experiments are listed in [docs/baseline_notes.md](docs/baselin
 
 RBSFormer was proposed for RAW image super-resolution, where inputs are 4-channel Bayer RAW images. This repository includes an RGB adaptation for this Kaggle task: it keeps the paper's EXCA cross-covariance attention, inception depthwise projection, EGFN gated feed-forward block, Charbonnier loss, and frequency loss, but changes the input/output to 3-channel RGB x4 SR.
 
+By default, the RGB version predicts a residual on top of bicubic upsampling. This gives the model a strong low-frequency PSNR baseline and lets the transformer blocks focus on high-frequency correction. Frequency loss is disabled by default because this competition is PSNR-driven; enable it only as an ablation.
+
 Train:
 
 ```bash

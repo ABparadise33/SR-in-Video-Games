@@ -149,7 +149,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--channels", type=int, default=60)
     parser.add_argument("--num-blocks", type=int, default=8)
     parser.add_argument("--num-heads", type=int, default=6)
-    parser.add_argument("--freq-loss-weight", type=float, default=0.05)
+    parser.add_argument("--freq-loss-weight", type=float, default=0.0)
+    parser.add_argument("--no-residual-upsample", action="store_true")
     parser.add_argument("--print-freq", type=int, default=100)
     parser.add_argument("--val-freq", type=int, default=2000)
     parser.add_argument("--save-freq", type=int, default=2000)
@@ -198,7 +199,12 @@ def main() -> None:
     )
     val_loader = DataLoader(val_set, batch_size=1, shuffle=False, num_workers=1)
 
-    model = RBSFormerRGB(channels=args.channels, num_blocks=args.num_blocks, num_heads=args.num_heads).to(device)
+    model = RBSFormerRGB(
+        channels=args.channels,
+        num_blocks=args.num_blocks,
+        num_heads=args.num_heads,
+        residual_upsample=not args.no_residual_upsample,
+    ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=0)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.total_iter, eta_min=args.lr * 0.01)
     charb = CharbonnierLoss()

@@ -44,6 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--channels", type=int, default=60)
     parser.add_argument("--num-blocks", type=int, default=8)
     parser.add_argument("--num-heads", type=int, default=6)
+    parser.add_argument("--no-residual-upsample", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     return parser.parse_args()
@@ -63,7 +64,12 @@ def batched(items: list[str], batch_size: int) -> list[list[str]]:
 
 def main() -> None:
     args = parse_args()
-    model = RBSFormerRGB(channels=args.channels, num_blocks=args.num_blocks, num_heads=args.num_heads).to(args.device)
+    model = RBSFormerRGB(
+        channels=args.channels,
+        num_blocks=args.num_blocks,
+        num_heads=args.num_heads,
+        residual_upsample=not args.no_residual_upsample,
+    ).to(args.device)
     state = torch.load(args.checkpoint, map_location=args.device)
     model.load_state_dict(state["model"] if "model" in state else state)
     model.eval()

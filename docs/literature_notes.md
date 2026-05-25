@@ -54,6 +54,7 @@ Implementation note:
 
 - The repository's `RBSFormerRGB` is an RGB adaptation, not the original RAW challenge model.
 - It preserves EXCA, EGFN, inception depthwise projection, Charbonnier loss, and frequency loss.
+- The RGB version predicts residual corrections over bicubic upsampling by default, which is a PSNR-oriented adaptation for this competition.
 - Because no public official implementation was found during setup, use it as an experimental method rather than a strict paper reproduction.
 
 ## Suggested Story for the Final Project
