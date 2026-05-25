@@ -208,6 +208,14 @@ python scripts/make_submission_hat.py \
   --output submissions/hat_s_baseline.csv
 ```
 
+Validate the submission format before uploading:
+
+```bash
+python scripts/validate_submission_format.py \
+  --submission submissions/hat_s_baseline.csv \
+  --sample-submission data/super-resolution-in-video-games/sample_submission.csv
+```
+
 Optional TTA:
 
 ```bash

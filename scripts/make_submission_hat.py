@@ -27,7 +27,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--tta", action="store_true", help="Use x8 flip/transpose test-time augmentation.")
-    parser.add_argument("--bgr", action="store_true", help="Encode BGR instead of RGB.")
+    parser.add_argument("--rgb", action="store_true", help="Encode RGB instead of Kaggle's expected cv2/BGR order.")
+    parser.add_argument("--bgr", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
@@ -48,7 +49,7 @@ def encode(img: np.ndarray) -> str:
             count = 1
 
     compressed = zlib.compress(bytes(rle), zlib.Z_BEST_COMPRESSION)
-    return base64.b64encode(compressed).decode("ascii")
+    return str(base64.b64encode(compressed))
 
 
 def build_hat_model(hat_root: Path, checkpoint: Path, device: str) -> torch.nn.Module:
@@ -139,7 +140,7 @@ def main() -> None:
             pred = tta_forward(model, batch) if args.tta else model(batch)
             pred = pred.clamp(0, 1).mul(255).round().byte().permute(0, 2, 3, 1).cpu().numpy()
             for name, image in zip(names, pred, strict=True):
-                if args.bgr:
+                if not args.rgb:
                     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 encoded_by_name[name] = encode(image)
 
@@ -151,4 +152,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
