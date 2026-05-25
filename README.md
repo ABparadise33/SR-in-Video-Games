@@ -241,3 +241,45 @@ Use this as the initial score anchor:
 - Metric: Kaggle PSNR; local validation uses fixed `64x64 -> 256x256` RGB crops
 
 Recommended next experiments are listed in [docs/baseline_notes.md](docs/baseline_notes.md).
+
+## RGB-Adapted RBSFormer
+
+RBSFormer was proposed for RAW image super-resolution, where inputs are 4-channel Bayer RAW images. This repository includes an RGB adaptation for this Kaggle task: it keeps the paper's EXCA cross-covariance attention, inception depthwise projection, EGFN gated feed-forward block, Charbonnier loss, and frequency loss, but changes the input/output to 3-channel RGB x4 SR.
+
+Train:
+
+```bash
+python scripts/train_rbsformer_rgb.py \
+  --data-root data/super-resolution-in-video-games \
+  --meta-info meta_info/train_clean_psnr18_train.txt \
+  --val-root data/val_crops \
+  --exp-dir experiments/rbsformer_rgb \
+  --total-iter 100000 \
+  --batch-size 8
+```
+
+Resume:
+
+```bash
+python scripts/train_rbsformer_rgb.py \
+  --data-root data/super-resolution-in-video-games \
+  --meta-info meta_info/train_clean_psnr18_train.txt \
+  --val-root data/val_crops \
+  --exp-dir experiments/rbsformer_rgb \
+  --resume experiments/rbsformer_rgb/checkpoints/latest.pth \
+  --total-iter 100000 \
+  --batch-size 8
+```
+
+Inference:
+
+```bash
+python scripts/make_submission_rbsformer.py \
+  --data-root data/super-resolution-in-video-games \
+  --checkpoint experiments/rbsformer_rgb/checkpoints/latest.pth \
+  --output submissions/rbsformer_rgb.csv
+
+python scripts/validate_submission_format.py \
+  --submission submissions/rbsformer_rgb.csv \
+  --sample-submission data/super-resolution-in-video-games/sample_submission.csv
+```

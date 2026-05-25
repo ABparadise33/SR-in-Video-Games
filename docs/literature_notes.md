@@ -50,7 +50,12 @@ Baseline relevance:
 - Ensemble and multi-configuration strategies can inspire final submissions.
 - RAW-specific Bayer assumptions do not transfer to RGB game screenshots.
 
+Implementation note:
+
+- The repository's `RBSFormerRGB` is an RGB adaptation, not the original RAW challenge model.
+- It preserves EXCA, EGFN, inception depthwise projection, Charbonnier loss, and frequency loss.
+- Because no public official implementation was found during setup, use it as an experimental method rather than a strict paper reproduction.
+
 ## Suggested Story for the Final Project
 
 Start with a faithful HAT-S reproduction. Then show that the largest early gain comes from data quality: mismatched pair filtering and duplicate-aware validation. After that, test training and inference improvements such as loss choice, longer fine-tuning, TTA, and checkpoint averaging. This gives the project a clean arc from reproduction to measurable improvement.
-
