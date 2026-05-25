@@ -27,6 +27,28 @@ Generated folders such as `data/`, `external/HAT/`, `meta_info/`, `submissions/`
 
 ## 1. Install Project Dependencies
 
+Install a CUDA build of PyTorch first. On Vast.ai RTX 3090 hosts with NVIDIA driver 570 / CUDA 12.8, use the PyTorch CUDA 12.8 wheels:
+
+```bash
+pip uninstall -y torch torchvision torchaudio
+pip install --force-reinstall torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 \
+  --index-url https://download.pytorch.org/whl/cu128
+```
+
+Verify CUDA:
+
+```bash
+python - <<'PY'
+import torch
+print(torch.__version__)
+print(torch.version.cuda)
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_name(0))
+PY
+```
+
+Then install the project dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
