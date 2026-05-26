@@ -38,9 +38,15 @@ VAL_FIELDS = [
     "best_ssim_iter",
 ]
 
-TRAIN_ITER_RE = re.compile(r"epoch:\s*([0-9]+),\s*iter:\s*([0-9,]+)", re.IGNORECASE)
-LR_RE = re.compile(r"lrs:\s*\[?[\(\[]?([0-9.eE+-]+)")
-SCALAR_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*):\s*([+-]?[0-9.]+(?:e[+-]?[0-9]+)?)", re.IGNORECASE)
+TRAIN_ITER_RE = re.compile(
+    r"epoch:\s*([0-9]+),\s*iter:\s*([0-9,\s]+?),\s*lr",
+    re.IGNORECASE,
+)
+LR_RE = re.compile(r"(?:lrs:\s*\[?[\(\[]?|lr:\()([0-9.eE+-]+)")
+TIME_RE = re.compile(r"time \(data\):\s*([0-9.]+)\s*\(([0-9.]+)\)")
+SCALAR_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*):\s*([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)"
+)
 VAL_START_RE = re.compile(r"Validation\s+(.+)$")
 VAL_METRIC_RE = re.compile(
     r"#\s*(psnr|ssim):\s*([0-9.]+)\s+Best:\s*([0-9.]+)\s*@\s*([0-9,]+)\s*iter",
@@ -74,14 +80,19 @@ def parse_train_line(line: str) -> dict[str, str] | None:
 
     row: dict[str, str] = {
         "epoch": match.group(1),
-        "iter": match.group(2).replace(",", ""),
+        "iter": match.group(2).replace(",", "").replace(" ", ""),
     }
     lr_match = LR_RE.search(line)
     if lr_match is not None:
         row["lrs"] = lr_match.group(1)
 
+    time_match = TIME_RE.search(line)
+    if time_match is not None:
+        row["time"] = time_match.group(1)
+        row["data_time"] = time_match.group(2)
+
     for key, value in SCALAR_RE.findall(line):
-        if key in TRAIN_FIELDS:
+        if key in TRAIN_FIELDS and key not in row:
             row[key] = value
     return row
 
@@ -115,6 +126,7 @@ def main() -> int:
     print(f"val csv:      {val_csv}", flush=True)
 
     pending_val: dict[str, str] | None = None
+    last_train_iter = ""
     with terminal_log.open("a", encoding="utf-8") as log_file:
         process = subprocess.Popen(
             cmd,
@@ -134,6 +146,7 @@ def main() -> int:
             if train_row is not None:
                 flush_val(val_writer, val_file, pending_val)
                 pending_val = None
+                last_train_iter = train_row.get("iter", last_train_iter)
                 train_writer.writerow({field: train_row.get(field, "") for field in TRAIN_FIELDS})
                 train_file.flush()
                 continue
@@ -141,7 +154,7 @@ def main() -> int:
             val_start = VAL_START_RE.search(line)
             if val_start is not None:
                 flush_val(val_writer, val_file, pending_val)
-                pending_val = {"dataset": val_start.group(1).strip()}
+                pending_val = {"iter": last_train_iter, "dataset": val_start.group(1).strip()}
                 continue
 
             val_metric = VAL_METRIC_RE.search(line)
@@ -151,7 +164,6 @@ def main() -> int:
                 pending_val[metric] = val_metric.group(2)
                 pending_val[f"best_{metric}"] = val_metric.group(3)
                 pending_val[f"best_{metric}_iter"] = val_metric.group(4).replace(",", "")
-                pending_val["iter"] = val_metric.group(4).replace(",", "")
 
         return_code = process.wait()
 
@@ -163,4 +175,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
