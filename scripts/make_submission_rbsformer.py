@@ -96,7 +96,10 @@ def main() -> None:
         num_heads=args.num_heads,
         residual_upsample=not args.no_residual_upsample,
     ).to(args.device)
-    state = torch.load(args.checkpoint, map_location=args.device)
+    # The training checkpoint stores args containing pathlib.Path objects, so
+    # PyTorch 2.6+ weights_only loading rejects it. This file is produced by our
+    # own training script, so full checkpoint loading is expected here.
+    state = torch.load(args.checkpoint, map_location=args.device, weights_only=False)
     model.load_state_dict(state["model"] if "model" in state else state)
     model.eval()
 
