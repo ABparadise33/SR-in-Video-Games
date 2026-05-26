@@ -158,6 +158,13 @@ This mirrors the notebook baseline: HAT-S x4, `gt_size=256`, batch size 4, hflip
 
 With `--val-root`, HAT logs validation PSNR/SSIM every `--val-freq` iterations. The default validation metric uses RGB PSNR/SSIM with `crop_border=0`, which is closer to the Kaggle setup than the standard benchmark Y-channel PSNR.
 
+Validation progress bars are disabled by default because BasicSR's per-image tqdm output is noisy under `tee`/remote terminals. To patch an existing config:
+
+```bash
+python scripts/set_hat_val_pbar.py \
+  --config external/HAT/options/train/train_HAT-S_gamesr_baseline.yml
+```
+
 ## Training Logs
 
 The HAT/BasicSR terminal log periodically includes:

@@ -21,6 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--val-crop-border", type=int, default=0)
     parser.add_argument("--val-y-channel", action="store_true")
     parser.add_argument("--save-val-img", action="store_true")
+    parser.add_argument("--val-pbar", action="store_true", help="Show BasicSR tqdm during validation.")
     parser.add_argument("--name", default="train_HAT-S_gamesr_baseline")
     parser.add_argument("--total-iter", type=int, default=24000)
     parser.add_argument("--batch-size", type=int, default=4)
@@ -99,7 +100,7 @@ def main() -> None:
     config["val"] = {
         "val_freq": args.val_freq,
         "save_img": args.save_val_img,
-        "pbar": True,
+        "pbar": args.val_pbar,
         "metrics": {
             "psnr": {
                 "type": "calculate_psnr",
