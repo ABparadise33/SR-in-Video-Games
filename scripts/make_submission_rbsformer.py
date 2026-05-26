@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-residual-upsample", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--tta", action="store_true", help="Use x8 flip/transpose test-time augmentation.")
     return parser.parse_args()
 
 
@@ -60,6 +61,31 @@ def load_rgb(path: Path) -> torch.Tensor:
 
 def batched(items: list[str], batch_size: int) -> list[list[str]]:
     return [items[i : i + batch_size] for i in range(0, len(items), batch_size)]
+
+
+def tta_forward(model: torch.nn.Module, batch: torch.Tensor) -> torch.Tensor:
+    transforms = [
+        lambda x: x,
+        lambda x: torch.flip(x, dims=[-1]),
+        lambda x: torch.flip(x, dims=[-2]),
+        lambda x: torch.flip(x, dims=[-2, -1]),
+        lambda x: x.transpose(-1, -2),
+        lambda x: torch.flip(x.transpose(-1, -2), dims=[-1]),
+        lambda x: torch.flip(x.transpose(-1, -2), dims=[-2]),
+        lambda x: torch.flip(x.transpose(-1, -2), dims=[-2, -1]),
+    ]
+    inverses = [
+        lambda x: x,
+        lambda x: torch.flip(x, dims=[-1]),
+        lambda x: torch.flip(x, dims=[-2]),
+        lambda x: torch.flip(x, dims=[-2, -1]),
+        lambda x: x.transpose(-1, -2),
+        lambda x: torch.flip(x, dims=[-1]).transpose(-1, -2),
+        lambda x: torch.flip(x, dims=[-2]).transpose(-1, -2),
+        lambda x: torch.flip(x, dims=[-2, -1]).transpose(-1, -2),
+    ]
+    preds = [inv(model(aug(batch))) for aug, inv in zip(transforms, inverses, strict=True)]
+    return torch.stack(preds, dim=0).mean(dim=0)
 
 
 def main() -> None:
@@ -83,7 +109,8 @@ def main() -> None:
     with torch.no_grad():
         for names in tqdm(batched(filenames, args.batch_size), desc="Predicting"):
             batch = torch.stack([load_rgb(test_lr / name) for name in names]).to(args.device)
-            pred = model(batch).clamp(0, 1).mul(255).round().byte().permute(0, 2, 3, 1).cpu().numpy()
+            pred = tta_forward(model, batch) if args.tta else model(batch)
+            pred = pred.clamp(0, 1).mul(255).round().byte().permute(0, 2, 3, 1).cpu().numpy()
             for name, image_rgb in zip(names, pred, strict=True):
                 image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
                 encoded[name] = encode(image_bgr)
