@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the HAT-S baseline training config for this competition."""
+"""Generate a HAT training config for this competition."""
 
 from __future__ import annotations
 
@@ -24,7 +24,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--val-pbar", action="store_true", help="Show BasicSR tqdm during validation.")
     parser.add_argument("--name", default="train_HAT-S_gamesr_baseline")
     parser.add_argument("--total-iter", type=int, default=24000)
+    parser.add_argument("--gt-size", type=int, default=256)
     parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--lr", type=float, default=None, help="Override train.optim_g.lr from the template.")
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--save-freq", type=float, default=2000)
     parser.add_argument("--print-freq", type=int, default=100)
@@ -64,7 +66,7 @@ def main() -> None:
             "dataroot_gt": str(data_root / "train" / "hr"),
             "dataroot_lq": str(data_root / "train" / "lr"),
             "io_backend": {"type": "disk"},
-            "gt_size": 256,
+            "gt_size": args.gt_size,
             "use_hflip": True,
             "use_rot": True,
             "use_shuffle": True,
@@ -95,6 +97,8 @@ def main() -> None:
     config["path"]["pretrain_network_g"] = str(args.pretrain.resolve())
     config["path"]["strict_load_g"] = False
     config["train"]["total_iter"] = args.total_iter
+    if args.lr is not None:
+        config["train"]["optim_g"]["lr"] = args.lr
     config["logger"]["print_freq"] = args.print_freq
     config["logger"]["save_checkpoint_freq"] = args.save_freq
     config["val"] = {
