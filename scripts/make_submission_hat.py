@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run HAT-S inference and write a Kaggle submission CSV."""
+"""Run HAT inference and write a Kaggle submission CSV."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import yaml
 from tqdm import tqdm
 
 
@@ -21,6 +22,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hat-root", type=Path, default=Path("external/HAT"))
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--opt",
+        type=Path,
+        default=None,
+        help="Optional HAT/BasicSR YAML. When set, build the network from network_g instead of hardcoded HAT-S.",
+    )
     parser.add_argument("--sample-submission", type=Path, default=None)
     parser.add_argument("--test-lr", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=Path("submissions/hat_s_baseline.csv"))
@@ -52,27 +59,38 @@ def encode(img: np.ndarray) -> str:
     return str(base64.b64encode(compressed))
 
 
-def build_hat_model(hat_root: Path, checkpoint: Path, device: str) -> torch.nn.Module:
+def load_network_options(opt: Path | None) -> dict:
+    if opt is None:
+        return {
+            "upscale": 4,
+            "in_chans": 3,
+            "img_size": 64,
+            "window_size": 16,
+            "compress_ratio": 24,
+            "squeeze_factor": 24,
+            "conv_scale": 0.01,
+            "overlap_ratio": 0.5,
+            "img_range": 1.0,
+            "depths": [6, 6, 6, 6, 6, 6],
+            "embed_dim": 144,
+            "num_heads": [6, 6, 6, 6, 6, 6],
+            "mlp_ratio": 2,
+            "upsampler": "pixelshuffle",
+            "resi_connection": "1conv",
+        }
+
+    with opt.open("r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    network_options = dict(config["network_g"])
+    network_options.pop("type", None)
+    return network_options
+
+
+def build_hat_model(hat_root: Path, checkpoint: Path, device: str, opt: Path | None) -> torch.nn.Module:
     sys.path.insert(0, str(hat_root.resolve()))
     from hat.archs.hat_arch import HAT  # noqa: PLC0415
 
-    model = HAT(
-        upscale=4,
-        in_chans=3,
-        img_size=64,
-        window_size=16,
-        compress_ratio=24,
-        squeeze_factor=24,
-        conv_scale=0.01,
-        overlap_ratio=0.5,
-        img_range=1.0,
-        depths=[6, 6, 6, 6, 6, 6],
-        embed_dim=144,
-        num_heads=[6, 6, 6, 6, 6, 6],
-        mlp_ratio=2,
-        upsampler="pixelshuffle",
-        resi_connection="1conv",
-    )
+    model = HAT(**load_network_options(opt))
     state = torch.load(checkpoint, map_location="cpu")
     if isinstance(state, dict):
         for key in ("params_ema", "params", "state_dict"):
@@ -131,7 +149,7 @@ def main() -> None:
 
     submission = pd.read_csv(sample_submission)
     filenames = submission["filename"].tolist()
-    model = build_hat_model(args.hat_root, args.checkpoint, args.device)
+    model = build_hat_model(args.hat_root, args.checkpoint, args.device, args.opt)
 
     encoded_by_name: dict[str, str] = {}
     with torch.no_grad():
